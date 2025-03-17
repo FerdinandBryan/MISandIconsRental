@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIS AND ICONS RENTAL SYSTEM</title>
+    <link rel="stylesheet" href="main_style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-card">
+            <div class="logo">
+                <img src="nc.png" alt="Logo">
+                <h1>MIS AND ICONS RENTAL SYSTEM</h1>
+            </div>
+            <div class="form-group">
+                <label for="user-type">Select User Type:</label>
+                <select id="user-type" class="form-control">
+                    <option value="student">Student</option>
+                    <option value="admin">Administrator</option>
+                </select>
+            </div>
+            
+            <!-- Add password field that only appears for admin login -->
+            <div id="admin-password-container" class="form-group" style="display: none;">
+                <label for="admin-password">Admin Password:</label>
+                <input type="password" id="admin-password" class="form-control" placeholder="Enter admin password">
+                <p id="password-error" class="error-message" style="color: red; display: none;">Incorrect password!</p>
+            </div>
+            
+            <button id="login-btn" class="btn primary-btn">Login</button>
+        </div>
+    </div>
+
+    <!-- Student Interface -->
+    <div id="student-interface" class="hidden">
+        <div class="container">
+            <div class="sidebar">
+                <img src="logo.png" alt="Logo">
+                <h2>MIS AND ICONS RENTAL SYSTEM</h2>
+                <div class="user-info">
+                    <span class="user-type">Student</span>
+                </div>
+                <button class="nav-button active" data-section="dashboard">DASHBOARD</button>
+                <button class="nav-button" data-section="mis-equipment">MIS ITEMS</button>
+                <button class="nav-button" data-section="icons-equipment">ICONS</button>
+                <button class="nav-button" data-section="other-equipment">OTHER ITEMS</button>
+                <button id="student-logout" class="nav-button logout-btn">LOGOUT <i class="fas fa-sign-out-alt"></i></button>
+            </div>
+            
+            <div class="main-content">
+                <div id="dashboard-section" class="content-section active">
+                    <div class="dashboard-box">DASHBOARD</div>
+                    <h1>Welcome, Student!</h1>
+                    
+                    <div class="dashboard">
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-check-circle"></i> Available Items</h2>
+                            </div>
+                            <div id="available-items-count" class="stat-number">0</div>
+                            <ul class="item-list" id="available-items-list">
+                                <!-- Items will be loaded dynamically -->
+                            </ul>
+                        </div>
+                        
+                        <div class="dashboard-card">
+                            <div class="card-header">
+                                <h2><i class="fas fa-clock"></i> Borrowed Items</h2>
+                            </div>
+                            <div id="borrowed-items-count" class="stat-number">0</div>
+                            <ul class="item-list" id="borrowed-items-list">
+                                <!-- Items will be loaded dynamically -->
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MIS Equipment Section -->
+                <div id="mis-equipment-section" class="content-section">
+                    <div class="dashboard-box">MIS ITEMS</div>
+                    <div class="category-section">
+                        <h2><i class="fas fa-desktop"></i> MIS Equipment</h2>
+                        <div class="cards" id="mis-items">
+                            <!-- Items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ICONS Equipment Section -->
+                <div id="icons-equipment-section" class="content-section">
+                    <div class="dashboard-box">ICONS</div>
+                    <div class="category-section">
+                        <h2><i class="fas fa-microchip"></i> ICONS Equipment</h2>
+                        <div class="cards" id="icons-items">
+                            <!-- Items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Other Equipment Section -->
+                <div id="other-equipment-section" class="content-section">
+                    <div class="dashboard-box">OTHER ITEMS</div>
+                    <div class="category-section">
+                        <h2><i class="fas fa-tools"></i> Other Equipment</h2>
+                        <div class="cards" id="things-items">
+                            <!-- Items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Borrow Modal -->
+        <div id="borrow-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>Borrow Item</h2>
+                    <span class="close">&times;</span>
+                </div>
+                <p id="modal-item-name" class="modal-item-details">Item: Projector (MIS-001)</p>
+                
+                <form id="borrow-form">
+                    <input type="hidden" id="item-id" name="item-id">
+                    <div class="form-group">
+                        <label for="student-number">Student Number:</label>
+                        <input type="text" id="student-number" class="form-control" placeholder="0000-0000" required pattern="[0-9]{4}-[0-9]{4}">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="year-section">Year/Section:</label>
+                        <input type="text" id="year-section" class="form-control" required placeholder="e.g., 3-A">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="course">Course:</label>
+                        <input type="text" id="course" class="form-control" required placeholder="e.g., BSIT">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="time-to-use">Time to Use (in hours):</label>
+                        <input type="number" id="time-to-use" class="form-control" required min="1" max="8" value="1">
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="button" class="btn cancel-btn" id="cancel-borrow">Cancel</button>
+                        <button type="submit" class="btn primary-btn">Confirm Borrow</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+                         
+    <div id="admin-interface" class="hidden">
+        <div class="container">
+            <div class="sidebar">
+                <img src="logo.png" alt="Logo">
+                <h2>MIS AND ICONS RENTAL SYSTEM</h2>
+                <div class="user-info">
+                    <span class="user-type">Administrator</span>
+                </div>
+                <button class="nav-button active" data-section="admin-dashboard">DASHBOARD</button>
+                <button class="nav-button" data-section="manage-items">MANAGE</button>
+                <button class="nav-button" data-section="reports">REPORTS</button>
+                <button id="admin-logout" class="nav-button logout-btn">LOGOUT <i class="fas fa-sign-out-alt"></i></button>
+            </div>
+            
+            <div class="main-content">
+                <div id="admin-dashboard-section" class="content-section active">
+                    <div class="dashboard-box">DASHBOARD</div>
+                    <h1>Admin Dashboard</h1>
+                    
+                    <div class="admin-stats">
+                        <div class="stat-card">
+                            <i class="fas fa-cubes"></i>
+                            <h3>Total Items</h3>
+                            <div id="total-items-count" class="stat-number">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-check-circle"></i>
+                            <h3>Available</h3>
+                            <div id="admin-available-count" class="stat-number">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-hand-holding"></i>
+                            <h3>Borrowed</h3>
+                            <div id="admin-borrowed-count" class="stat-number">0</div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <i class="fas fa-user-graduate"></i>
+                            <h3>Students</h3>
+                            <div id="students-count" class="stat-number">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-line"></i> Item Usage Analytics</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="usageChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-pie"></i> Most Borrowed Items</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="borrowedItemsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="manage-items-section" class="content-section">
+                    <div class="dashboard-box">MANAGE</div>
+                    <h1>Manage Inventory</h1>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-plus-circle"></i> Add New Item</h2>
+                        </div>
+                        <form id="add-item-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="item-name">Item Name:</label>
+                                    <input type="text" id="item-name" class="form-control" required>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="item-category">Category:</label>
+                                    <select id="item-category" class="form-control">
+                                        <option value="MIS">MIS Equipment</option>
+                                        <option value="ICON">ICONS Equipment</option>
+                                        <option value="THING">Other Equipment</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="item-description">Description:</label>
+                                <textarea id="item-description" class="form-control" rows="3"></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="item-image">Item Image:</label>
+                                <div class="image-upload-container">
+                                    <input type="file" id="item-image" accept="image/*" class="form-control">
+                                    <div id="image-preview" class="image-preview">
+                                        <img id="preview-img" src="" alt="Preview" style="display: none; max-width: 100%; max-height: 200px;">
+                                        <p id="no-image-text">No image selected</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <button type="submit" class="btn primary-btn">Add Item</button>
+                        </form>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-clipboard-list"></i> Manage Inventory</h2>
+                        </div>
+                        <div class="tabs">
+                            <button class="tab active" data-tab-content="all-items">All Items</button>
+                            <button class="tab" data-tab-content="borrowed-items">Borrowed Items</button>
+                        </div>
+                        
+                        <div id="all-items" class="tab-content active">
+                            <div class="search-container">
+                                <input type="text" id="item-search" placeholder="Search items..." class="search-input">
+                                <button id="search-btn" class="btn"><i class="fas fa-search"></i></button>
+                            </div>
+                            <div class="table-responsive">
+                                <table class="item-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item Code</th>
+                                            <th>Name</th>
+                                            <th>Category</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="all-items-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div id="borrowed-items" class="tab-content">
+                            <div class="table-responsive">
+                                <table class="item-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item Code</th>
+                                            <th>Name</th>
+                                            <th>Borrowed By</th>
+                                            <th>Return Time</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="borrowed-items-table">
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="reports-section" class="content-section">
+                    <div class="dashboard-box">REPORTS</div>
+                    <h1>Usage Reports</h1>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-bar"></i> Usage Reports</h2>
+                        </div>
+                        <div class="tabs">
+                            <button class="tab active" data-tab-content="daily-report">Daily</button>
+                            <button class="tab" data-tab-content="weekly-report">Weekly</button>
+                            <button class="tab" data-tab-content="monthly-report">Monthly</button>
+                        </div>
+                        
+                        <div id="daily-report" class="tab-content active">
+                            <div class="chart-container">
+                                <canvas id="dailyReportChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div id="weekly-report" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="weeklyReportChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <div id="monthly-report" class="tab-content">
+                            <div class="chart-container">
+                                <canvas id="monthlyReportChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-exclamation-triangle"></i> Items Not Borrowed Recently</h2>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="unusedItemsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="edit-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Edit Item</h2>
+                <span class="close" id="edit-close">&times;</span>
+            </div>
+            
+            <form id="edit-item-form">
+                <input type="hidden" id="edit-item-id">
+                <div class="form-group">
+                    <label for="edit-item-name">Item Name:</label>
+                    <input type="text" id="edit-item-name" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-item-category">Category:</label>
+                    <select id="edit-item-category" class="form-control">
+                        <option value="MIS">MIS Equipment</option>
+                        <option value="ICON">ICONS Equipment</option>
+                        <option value="THING">Other Equipment</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="edit-item-description">Description:</label>
+                    <textarea id="edit-item-description" class="form-control" rows="3"></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="button" class="btn cancel-btn" id="cancel-edit">Cancel</button>
+                    <button type="submit" class="btn primary-btn">Save Changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div id="toast" class="toast hidden">
+        <div class="toast-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="toast-message">Item successfully updated!</div>
+        <div class="toast-close">&times;</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
