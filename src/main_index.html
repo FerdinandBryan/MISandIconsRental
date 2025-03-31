@@ -12,7 +12,7 @@
     <div id="login-screen" class="login-container">
         <div class="login-card">
             <div class="logo">
-                <img src="nc.png" alt="Logo">
+                <img src="nc-removebg-preview (3).png" alt="Logo">
                 <h1>MIS AND ICONS RENTAL SYSTEM</h1>
             </div>
             <div class="form-group">
@@ -34,129 +34,102 @@
         </div>
     </div>
 
-    <!-- Student Interface -->
-    <div id="student-interface" class="hidden">
-        <div class="container">
-            <div class="sidebar">
-                <img src="logo.png" alt="Logo">
-                <h2>MIS AND ICONS RENTAL SYSTEM</h2>
-                <div class="user-info">
-                    <span class="user-type">Student</span>
-                </div>
-                <button class="nav-button active" data-section="dashboard">DASHBOARD</button>
-                <button class="nav-button" data-section="mis-equipment">MIS ITEMS</button>
-                <button class="nav-button" data-section="icons-equipment">ICONS</button>
-                <button class="nav-button" data-section="other-equipment">OTHER ITEMS</button>
-                <button id="student-logout" class="nav-button logout-btn">LOGOUT <i class="fas fa-sign-out-alt"></i></button>
+   <!-- Student Interface -->
+<div id="student-interface" class="hidden">
+    <div class="container">
+        <div class="sidebar">
+            <img src="nc-removebg-preview (3).png" alt="Logo">
+            <h2>MIS AND ICONS RENTAL SYSTEM</h2>
+            <div class="user-info">
+                <span class="user-type">Student</span>
             </div>
-            
-            <div class="main-content">
-                <div id="dashboard-section" class="content-section active">
-                    <div class="dashboard-box">DASHBOARD</div>
-                    <h1>Welcome, Student!</h1>
-                    
-                    <div class="dashboard">
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h2><i class="fas fa-check-circle"></i> Available Items</h2>
-                            </div>
-                            <div id="available-items-count" class="stat-number">0</div>
-                            <ul class="item-list" id="available-items-list">
-                                <!-- Items will be loaded dynamically -->
-                            </ul>
-                        </div>
-                        
-                        <div class="dashboard-card">
-                            <div class="card-header">
-                                <h2><i class="fas fa-clock"></i> Borrowed Items</h2>
-                            </div>
-                            <div id="borrowed-items-count" class="stat-number">0</div>
-                            <ul class="item-list" id="borrowed-items-list">
-                                <!-- Items will be loaded dynamically -->
-                            </ul>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- MIS Equipment Section -->
-                <div id="mis-equipment-section" class="content-section">
-                    <div class="dashboard-box">MIS ITEMS</div>
-                    <div class="category-section">
-                        <h2><i class="fas fa-desktop"></i> MIS Equipment</h2>
-                        <div class="cards" id="mis-items">
-                            <!-- Items will be loaded dynamically -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- ICONS Equipment Section -->
-                <div id="icons-equipment-section" class="content-section">
-                    <div class="dashboard-box">ICONS</div>
-                    <div class="category-section">
-                        <h2><i class="fas fa-microchip"></i> ICONS Equipment</h2>
-                        <div class="cards" id="icons-items">
-                            <!-- Items will be loaded dynamically -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Other Equipment Section -->
-                <div id="other-equipment-section" class="content-section">
-                    <div class="dashboard-box">OTHER ITEMS</div>
-                    <div class="category-section">
-                        <h2><i class="fas fa-tools"></i> Other Equipment</h2>
-                        <div class="cards" id="things-items">
-                            <!-- Items will be loaded dynamically -->
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <button class="nav-button active" data-section="mis-equipment">MIS ITEMS</button>
+            <button class="nav-button" data-section="icons-equipment">ICONS</button>
+            <button class="nav-button" data-section="other-equipment">OTHER ITEMS</button>
+            <button id="student-logout" class="nav-button logout-btn">LOGOUT <i class="fas fa-sign-out-alt"></i></button>
         </div>
 
-        <!-- Borrow Modal -->
-        <div id="borrow-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Borrow Item</h2>
-                    <span class="close">&times;</span>
+        <div class="main-content">
+            <!-- MIS Equipment Section -->
+            <div id="mis-equipment-section" class="content-section active">
+                <div class="dashboard-box">MIS ITEMS</div>
+                <div class="category-section">
+                    <h2><i class="fas fa-desktop"></i> MIS Equipment</h2>
+                    <div class="cards" id="mis-items">
+                        <!-- Items will be loaded dynamically -->
+                    </div>
                 </div>
-                <p id="modal-item-name" class="modal-item-details">Item: Projector (MIS-001)</p>
-                
-                <form id="borrow-form">
-                    <input type="hidden" id="item-id" name="item-id">
-                    <div class="form-group">
-                        <label for="student-number">Student Number:</label>
-                        <input type="text" id="student-number" class="form-control" placeholder="0000-0000" required pattern="[0-9]{4}-[0-9]{4}">
+            </div>
+
+            <!-- ICONS Equipment Section -->
+            <div id="icons-equipment-section" class="content-section">
+                <div class="dashboard-box">ICONS</div>
+                <div class="category-section">
+                    <h2><i class="fas fa-microchip"></i> ICONS Equipment</h2>
+                    <div class="cards" id="icons-items">
+                        <!-- Items will be loaded dynamically -->
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="year-section">Year/Section:</label>
-                        <input type="text" id="year-section" class="form-control" required placeholder="e.g., 3-A">
+                </div>
+            </div>
+
+            <!-- Other Equipment Section -->
+            <div id="other-equipment-section" class="content-section">
+                <div class="dashboard-box">OTHER ITEMS</div>
+                <div class="category-section">
+                    <h2><i class="fas fa-tools"></i> Other Equipment</h2>
+                    <div class="cards" id="things-items">
+                        <!-- Items will be loaded dynamically -->
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="course">Course:</label>
-                        <input type="text" id="course" class="form-control" required placeholder="e.g., BSIT">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="time-to-use">Time to Use (in hours):</label>
-                        <input type="number" id="time-to-use" class="form-control" required min="1" max="8" value="1">
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="button" class="btn cancel-btn" id="cancel-borrow">Cancel</button>
-                        <button type="submit" class="btn primary-btn">Confirm Borrow</button>
-                    </div>
-                </form>
+                </div>
             </div>
         </div>
     </div>
-                         
+</div>
+
+<!-- Borrow Modal -->
+<div id="borrow-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Borrow Item</h2>
+            <span class="close">&times;</span>
+        </div>
+        <p id="modal-item-name" class="modal-item-details">Item: Projector (MIS-001)</p>
+
+        <form id="borrow-form">
+            <input type="hidden" id="item-id" name="item-id">
+            <div class="form-group">
+                <label for="student-number">Student Number:</label>
+                <input type="text" id="student-number" class="form-control" placeholder="0000-0000" required pattern="[0-9]{4}-[0-9]{4}">
+            </div>
+
+            <div class="form-group">
+                <label for="year-section">Year/Section:</label>
+                <input type="text" id="year-section" class="form-control" required placeholder="e.g., 3-A">
+            </div>
+
+            <div class="form-group">
+                <label for="course">Course:</label>
+                <input type="text" id="course" class="form-control" required placeholder="e.g., BSIT">
+            </div>
+
+            <div class="form-group">
+                <label for="time-to-use">Time to Use (in hours):</label>
+                <input type="number" id="time-to-use" class="form-control" required min="1" max="8" value="1">
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="btn cancel-btn" id="cancel-borrow">Cancel</button>
+                <button type="submit" class="btn primary-btn">Confirm Borrow</button>
+            </div>
+        </form>
+    </div>
+</div>
+    <!-- admin interface -->            
     <div id="admin-interface" class="hidden">
         <div class="container">
             <div class="sidebar">
-                <img src="logo.png" alt="Logo">
+                <img src="nc-removebg-preview (3).png" alt="Logo">
                 <h2>MIS AND ICONS RENTAL SYSTEM</h2>
                 <div class="user-info">
                     <span class="user-type">Administrator</span>
@@ -246,7 +219,15 @@
                                 <label for="item-description">Description:</label>
                                 <textarea id="item-description" class="form-control" rows="3"></textarea>
                             </div>
-
+                        
+                            <div class="form-group">
+                                <label for="item-status">Status:</label>
+                                <select id="item-status" class="form-control">
+                                    <option value="MIS">Available</option>
+                                    <option value="ICON">Borrowed</option>               
+                                </select>
+                            </div>
+                        
                             <div class="form-group">
                                 <label for="item-image">Item Image:</label>
                                 <div class="image-upload-container">
@@ -257,8 +238,7 @@
                                     </div>
                                 </div>
                             </div>
-                            
-                            <button type="submit" class="btn primary-btn">Add Item</button>
+                     <button type="submit" class="btn primary-btn">Add Item</button>
                         </form>
                     </div>
                     
@@ -401,6 +381,6 @@
         <div class="toast-close">&times;</div>
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
-    <script src="script.js"></script>
+    <script src="main.js"></script>
 </body>
 </html>
