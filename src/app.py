@@ -74,8 +74,8 @@ def get_inventory():
         # Create response with CORS headers
         response = jsonify(inventory_items)
         response.headers.add('Access-Control-Allow-Origin', '*')
-        return response
-    
+        return response  
+                               
     except Exception as e:
         print(f"Error fetching inventory: {str(e)}")
         response = jsonify({'success': False, 'message': f'Failed to fetch inventory: {str(e)}'})
@@ -154,38 +154,69 @@ def add_inventory_item():
         response = jsonify({'success': False, 'message': f'Failed to add item to database: {str(e)}'})
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
+    
 # Route to borrow an item
 @app.route('/api/borrow', methods=['POST'])
 def borrow_item():
     data = request.json
+    
+    # Extract all required fields from request
     item_id = data.get('itemId')
     student_id = data.get('studentId')
-    borrow_time = data.get('borrowTime')
-    return_time = data.get('returnTime')
-
+    year_section = data.get('yearSection')
+    course = data.get('course')
+    hours_to_use = data.get('hoursToUse')
+    borrow_date = data.get('borrowDate')
+    due_date = data.get('dueDate')
+    
+    # Validate required fields
+    if not all([item_id, student_id, year_section, course, hours_to_use, borrow_date, due_date]):
+        return jsonify({'success': False, 'message': 'Missing required fields'})
+    
     connection = get_db_connection()
     if connection is None:
         return jsonify({'success': False, 'message': 'Failed to connect to database'})
     
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT * FROM inventory_items WHERE id = %s", (item_id,))
-    item = cursor.fetchone()
-
-    if not item or item['status'] != 'available':
-        cursor.close()
-        connection.close()
-        return jsonify({'success': False, 'message': 'Item not available or does not exist'})
-
-    cursor.execute("UPDATE inventory_items SET status = 'borrowed' WHERE id = %s", (item_id,))
-    cursor.execute("""
-        INSERT INTO borrowed_items (itemId, studentId, borrowDate, dueDate)
-        VALUES (%s, %s, %s, %s)
-    """, (item_id, student_id, borrow_time, return_time))
-    connection.commit()
-    cursor.close()
-    connection.close()
-    return jsonify({'success': True})
+    try:
+        # Create a dictionary cursor
+        cursor = connection.cursor(dictionary=True)
+        
+        # Check if item exists and is available
+        cursor.execute("SELECT * FROM inventory_items WHERE id = %s", (item_id,))
+        item = cursor.fetchone()
+        
+        if not item or item['status'] != 'available':
+            return jsonify({'success': False, 'message': 'Item not available or does not exist'})
+        
+        # Check if student exists
+        cursor.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
+        student = cursor.fetchone()
+        
+        if not student:
+            return jsonify({'success': False, 'message': 'Student does not exist'})
+        
+        # Update item status to borrowed
+        cursor.execute("UPDATE inventory_items SET status = 'borrowed' WHERE id = %s", (item_id,))
+        
+        # Insert into borrowed_items table
+        cursor.execute("""
+            INSERT INTO borrowed_items 
+            (itemId, studentId, yearSection, course, borrowDate, dueDate, hoursToUse)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (item_id, student_id, year_section, course, borrow_date, due_date, hours_to_use))
+        
+        connection.commit()
+        return jsonify({'success': True, 'message': 'Item borrowed successfully'})
+        
+    except Exception as e:
+        connection.rollback()
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'})
+    
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 # Route to delete an item from the inventory
 @app.route('/api/inventory/<item_id>', methods=['DELETE'])
