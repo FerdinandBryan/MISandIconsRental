@@ -273,6 +273,7 @@ body {
     background-color: white;
     border-radius: 8px;
     padding: 20px;
+    margin:20px;
     box-shadow: var(--card-shadow);
 }
 
