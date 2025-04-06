@@ -3,7 +3,7 @@ from flask_cors import CORS
 import uuid
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/api/*": {"origins": "http://127.0.0.1:5500"}})
 
 # Sample data
 inventory_items = []
@@ -69,4 +69,4 @@ def delete_inventory_item(item_id):
     return jsonify({'success': True})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True,port = 5000)

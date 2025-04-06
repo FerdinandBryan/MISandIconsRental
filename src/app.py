@@ -47,42 +47,84 @@ def get_db_connection():
 
 # Route to fetch all inventory items
 @app.route('/api/inventory', methods=['GET'])
+@app.route('/api/inventory', methods=['GET', 'OPTIONS'])
 def get_inventory():
-    connection = get_db_connection()
-    if connection is None:
-        return jsonify({'success': False, 'message': 'Failed to connect to database'})
-    
-    cursor = connection.cursor(dictionary=True)
-    cursor.execute("SELECT * FROM inventory_items")
-    inventory_items = cursor.fetchall()
-    
-    print(f"Fetched inventory items: {inventory_items}")
-    
-    cursor.close()
-    connection.close()
-    return jsonify(inventory_items)
-
-# Route to add a new item to the inventory
-@app.route('/api/inventory', methods=['POST'])
-def add_inventory_item():
-    print("!!!!!!!!!!!!!!!!!test!!!!!!!!!!!!!!!!!!!!!!!!!!11")
-    data = request.form
-    item = {
-        'name': data.get('name'),
-        'category': data.get('category'),
-        'description': data.get('description'),
-        'status': data.get('status'),  
-        'image':  base64.b64encode(request.files['image'].read()) if 'image' in request.files else None
-        # 'image': request.files['image'].read() if 'image' in request.files else None
-    }
-    
-    print(f"Adding item to inventory: {item}")
-    
-    connection = get_db_connection()
-    if connection is None:
-        return jsonify({'success': False, 'message': 'Failed to connect to database'})
+    # Handle preflight CORS requests
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'GET')
+        return response
     
     try:
+        connection = get_db_connection()
+        if connection is None:
+            return jsonify({'success': False, 'message': 'Failed to connect to database'})
+        
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute("SELECT * FROM inventory_items")
+        inventory_items = cursor.fetchall()
+        
+        print(f"Fetched inventory items: {inventory_items}")
+        
+        cursor.close()
+        connection.close()
+        
+        # Create response with CORS headers
+        response = jsonify(inventory_items)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+    
+    except Exception as e:
+        print(f"Error fetching inventory: {str(e)}")
+        response = jsonify({'success': False, 'message': f'Failed to fetch inventory: {str(e)}'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+# Route to add a new item to the inventory
+@app.route('/api/inventory', methods=['POST', 'OPTIONS'])
+def add_inventory_item():
+    # Handle preflight CORS requests
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', 'Content-Type')
+        response.headers.add('Access-Control-Allow-Methods', 'POST')
+        return response
+        
+    print("Processing inventory item addition")
+    
+    try:
+        # Check if the request is JSON or form data
+        if request.content_type and 'application/json' in request.content_type:
+            # Handle JSON data
+            data = request.json
+            image_data = None
+        else:
+            # Handle form data
+            data = request.form
+            image_data = request.files['image'].read() if 'image' in request.files else None
+            # Encode image data if it exists
+            if image_data:
+                image_data = base64.b64encode(image_data)
+        
+        # Create item dictionary
+        item = {
+            'name': data.get('name'),
+            'category': data.get('category'),
+            'description': data.get('description'),
+            'status': data.get('status', 'available'),
+            'image': image_data
+        }
+        
+        print(f"Adding item to inventory: {item['name']}")
+        
+        # Connect to database
+        connection = get_db_connection()
+        if connection is None:
+            return jsonify({'success': False, 'message': 'Failed to connect to database'})
+        
         cursor = connection.cursor()
         cursor.execute("""
             INSERT INTO inventory_items (name, category, description, status, image)
@@ -92,12 +134,26 @@ def add_inventory_item():
         cursor.close()
         connection.close()
         print("Item added successfully")
-    except Error as e:
-        print(f"Error adding item to inventory: {e}")
-        return jsonify({'success': False, 'message': 'Failed to add item to database'})
-    
-    return jsonify({'success': True, 'name': item.name, 'category' :item.category,'description': item.description,'status': item.status,'image': item.image})
-
+        
+        # Create response with CORS headers
+        response = jsonify({
+            'success': True, 
+            'message': 'Item added successfully',
+            'item': {
+                'name': item['name'],
+                'category': item['category'],
+                'description': item['description'],
+                'status': item['status']
+            }
+        })
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+        
+    except Exception as e:
+        print(f"Error adding item to inventory: {str(e)}")
+        response = jsonify({'success': False, 'message': f'Failed to add item to database: {str(e)}'})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 # Route to borrow an item
 @app.route('/api/borrow', methods=['POST'])
 def borrow_item():
@@ -229,4 +285,4 @@ if __name__ == '__main__':
         connection.close()
     
     # Ensure the Flask server runs on a different port (e.g., 5000)
-    app.run(debug=True, port=5000)
+    app.run(debug=True)

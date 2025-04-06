@@ -143,62 +143,90 @@ document.addEventListener('DOMContentLoaded', function() {
             const itemStatus = document.getElementById('item-status').value || 'available';
             const itemImage = document.getElementById('item-image').files[0];
             
-            // Create FormData object to handle file upload
-            const formData = new FormData();
-            formData.append('name', itemName);
-            formData.append('category', itemCategory);
-            formData.append('description', itemDescription);
-            formData.append('status', itemStatus);
-            
-            if (itemImage) {
+            // Different approach for items with no image
+            if (!itemImage) {
+                // Use JSON for non-file data
+                const itemData = {
+                    name: itemName,
+                    category: itemCategory,
+                    description: itemDescription,
+                    status: itemStatus
+                };
+                
+                fetch(`${API_URL}/inventory`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(itemData)
+                })
+                .then(handleResponse)
+                .catch(handleError);
+            } else {
+                // Use FormData for file uploads
+                const formData = new FormData();
+                formData.append('name', itemName);
+                formData.append('category', itemCategory);
+                formData.append('description', itemDescription);
+                formData.append('status', itemStatus);
                 formData.append('image', itemImage);
+                
+                fetch(`${API_URL}/inventory`, {
+                    method: 'POST',
+                    // No Content-Type header for FormData
+                    body: formData
+                })
+                .then(handleResponse)
+                .catch(handleError);
             }
             
-            // Send the data to the server
-            fetch(`${API_URL}/inventory`, {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showToast('Item added successfully!');
-                    addItemForm.reset();
-                    previewImg.style.display = 'none';
-                    noImageText.style.display = 'block';
-                    loadInventory(); // Reload inventory data
-                } else {
-                    showToast('Failed to add item: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
+            function handleResponse(response) {
+                console.log('Response status:', response.status);
+                return response.json().then(data => {
+                    console.log('Server response data:', data);
+                    
+                    if (data.success) {
+                        showToast('Item added successfully!');
+                        addItemForm.reset();
+                        if (previewImg) {
+                            previewImg.style.display = 'none';
+                        }
+                        if (noImageText) {
+                            noImageText.style.display = 'block';
+                        }
+                        loadInventory();
+                    } else {
+                        showToast('Failed to add item: ' + (data.message || 'Unknown error'), 'error');
+                    }
+                });
+            }
+            
+            function handleError(error) {
                 console.error('Error adding item:', error);
                 showToast('Error adding item. Please try again.', 'error');
-            });
+            }
         });
     }
-    
+
     // Load inventory data for admin dashboard
     function loadInventory() {
-        fetch(`${API_URL}/inventory`, {
-            method:'GET',
-            headers:{
-                'Content-Type':'application/json',
-                // 'Access-Control-Allow-Origin' : 'true'
-            }
-        }        )
-            .then(response => response.json())
-            .then(data => {
-                inventory = data;
-                updateInventoryStats();
-                renderInventoryTable();
-                initCharts(data);
-            })
-            .catch(error => {
-                console.error('Error loading inventory:', error);
-                showToast('Failed to load inventory data', 'error');
-            });
-    }
+    fetch(`${API_URL}/inventory`, {
+        method: 'GET'
+        
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Inventory data received:', data);
+        inventory = data;
+        updateInventoryStats();
+        renderInventoryTable();
+        initCharts(data);
+    })
+    .catch(error => {
+        console.error('Error loading inventory:', error);
+        showToast('Failed to load inventory data', 'error');
+    });
+ }
     
     // Load inventory data for student view
     function loadInventoryForStudent() {
@@ -512,32 +540,51 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Show toast notification
     function showToast(message, type = 'success') {
-        const toastElement = document.getElementById('toast');
-        const toastMessage = document.querySelector('.toast-message');
-        const toastIcon = document.querySelector('.toast-icon i');
-        
-        toastMessage.textContent = message;
-        
-        if (type === 'error') {
-            toastElement.classList.add('error');
-            toastIcon.className = 'fas fa-times-circle';
-        } else {
-            toastElement.classList.remove('error');
-            toastIcon.className = 'fas fa-check-circle';
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.id = 'toast-container';
+            document.body.appendChild(toastContainer);
         }
         
-        toastElement.classList.remove('hidden');
+        // Create toast element
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.innerHTML = `
+            <div class="toast-icon">
+                ${type === 'success' ? 
+                    '<i class="fas fa-check-circle"></i>' : 
+                    '<i class="fas fa-exclamation-circle"></i>'}
+            </div>
+            <div class="toast-message">${message}</div>
+            <button class="toast-close">&times;</button>
+        `;
         
-        // Hide toast after 3 seconds
+        // Add to container
+        toastContainer.appendChild(toast);
+        
+        // Add animation
         setTimeout(() => {
-            toastElement.classList.add('hidden');
+            toast.classList.add('show');
+        }, 10);
+        
+        // Set timeout to remove toast
+        const timeout = setTimeout(() => {
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', function() {
+                toast.remove();
+            });
         }, 3000);
-    }
-    
-    // Close toast when clicking on X
-    if (toastClose) {
-        toastClose.addEventListener('click', function() {
-            toast.classList.add('hidden');
+        
+        // Close button functionality
+        const closeBtn = toast.querySelector('.toast-close');
+        closeBtn.addEventListener('click', () => {
+            clearTimeout(timeout);
+            toast.classList.remove('show');
+            toast.addEventListener('transitionend', function() {
+                toast.remove();
+            });
         });
     }
 });
