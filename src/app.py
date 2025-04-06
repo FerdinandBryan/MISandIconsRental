@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, make_response, request, jsonify, send_from_directory
 from flask_cors import CORS,cross_origin
 import os
 import datetime
@@ -8,7 +8,6 @@ import base64
 from mysql.connector import Error
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask import redirect, url_for
 
 
 app = Flask(__name__)
@@ -44,6 +43,16 @@ def get_db_connection():
     except Error as e:
         print(f"Error connecting to MySQL database: {e}")
         return None
+    
+# Route to host static front-end
+@app.route('/')
+def serve_html():
+    return send_from_directory('static','main_index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory('static',path)
+
 
 # Route to fetch all inventory items
 @app.route('/api/inventory', methods=['GET'])
