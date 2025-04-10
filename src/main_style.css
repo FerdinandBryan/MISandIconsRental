@@ -1,4 +1,4 @@
- /* Global Styles */
+/* Global Styles */
 * {
     margin: 0;
     padding: 0;
@@ -647,4 +647,31 @@ body {
     .cards {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     }
+}
+
+/* Student Details Container */
+#student-details-container {
+    display: none; /* Initially hidden */
+    margin-top: 15px;
+}
+
+#student-details-container label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+}
+
+#student-details-container input {
+    width: 100%;
+    padding: 10px 15px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    margin-bottom: 15px;
+    transition: border-color 0.3s;
+}
+
+#student-details-container input:focus {
+    border-color: var(--primary-color);
+    outline: none;
 }

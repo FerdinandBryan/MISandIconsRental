@@ -8,7 +8,8 @@ import base64
 from mysql.connector import Error
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
-
+import re
+import traceback
 
 app = Flask(__name__)
 cors = CORS(app, resources={
@@ -91,6 +92,81 @@ def get_inventory():
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
 
+# Add this new route to your Flask application
+
+@app.route('/api/login', methods=['POST'])
+def student_login():
+    try:
+        data = request.json
+        student_id = data.get('studentid')
+        student_name = data.get('name')
+        student_email = data.get('email')
+        course = data.get('course', 'Unspecified')  # Default course if not provided
+
+        # Validate input
+        if not all([student_id, student_name, student_email]):
+            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+        connection = get_db_connection()
+        if connection is None:
+            return jsonify({'success': False, 'message': 'Failed to connect to database'}), 500
+        
+        cursor = connection.cursor(dictionary=True)
+        
+        # Check if student already exists
+        cursor.execute("""
+            SELECT * FROM students 
+            WHERE studentid = %s
+        """, (student_id,))
+        
+        student = cursor.fetchone()
+        
+        if student:
+            # Update existing student details
+            cursor.execute("""
+                UPDATE students 
+                SET name = %s, email = %s, course = %s, last_login = NOW()
+                WHERE studentid = %s
+            """, (student_name, student_email, course, student_id))
+            connection.commit()
+        else:
+            # Insert a new student
+            new_id = generate_id()
+            cursor.execute("""
+            INSERT INTO students (studentid, name, email, course, registration_date, last_login)
+            VALUES (%s, %s, %s, %s, NOW(), NOW())
+            """, (student_id, student_name, student_email, course))
+            connection.commit()
+
+            new_id = cursor.lastrowid
+            
+            # Fetch newly created student record
+            cursor.execute("SELECT * FROM students WHERE id = %s", (new_id,))
+            student = cursor.fetchone()
+        
+        cursor.close()
+        connection.close()
+
+        # Return the student details
+        return jsonify({
+            'success': True, 
+            'message': 'Login successful',
+            'student': {
+                'id': student['id'],
+                'studentId': student['studentid'],
+                'name': student['name'],
+                'email': student['email'],
+                'course': student['course'],
+                'registrationDate': student['registration_date'].isoformat() if student.get('registration_date') else None,
+                'lastLogin': student['last_login'].isoformat() if student.get('last_login') else None
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error during login: {str(e)}")
+        print(traceback.format_exc())  # This will show the full stack trace
+        return jsonify({'success': False, 'message': f'Login failed: {str(e)}'})
+
 # Route to add a new item to the inventory
 @app.route('/api/inventory', methods=['POST', 'OPTIONS'])
 def add_inventory_item():
@@ -168,63 +244,101 @@ def add_inventory_item():
 @app.route('/api/borrow', methods=['POST'])
 def borrow_item():
     data = request.json
-    
-    # Extract all required fields from request
+    print('Received borrow request:', data)  # Debugging log
+
     item_id = data.get('itemId')
-    student_id = data.get('studentId')
+    student_id_number = data.get('studentId')  # This is the student ID number, not UUID
     year_section = data.get('yearSection')
     course = data.get('course')
     hours_to_use = data.get('hoursToUse')
-    borrow_date = data.get('borrowDate')
-    due_date = data.get('dueDate')
+    borrow_date_str = data.get('borrowDate')
     
-    # Validate required fields
-    if not all([item_id, student_id, year_section, course, hours_to_use, borrow_date, due_date]):
+    # Convert ISO date string to MySQL compatible format
+    try:
+        # Parse the ISO format date
+        from datetime import datetime
+        parsed_date = datetime.fromisoformat(borrow_date_str.replace('Z', '+00:00'))
+        # Format it in a way MySQL accepts
+        borrow_date = parsed_date.strftime('%Y-%m-%d %H:%M:%S')
+        print('Parsed borrow date:', borrow_date)  # Debug log
+    except Exception as e:
+        print('Date parsing error:', e)  # Debug log
+        return jsonify({'success': False, 'message': f'Invalid date format: {str(e)}'})
+
+    if not all([item_id, student_id_number, year_section, course, hours_to_use, borrow_date]):
         return jsonify({'success': False, 'message': 'Missing required fields'})
-    
+
     connection = get_db_connection()
     if connection is None:
         return jsonify({'success': False, 'message': 'Failed to connect to database'})
-    
+
     try:
-        # Create a dictionary cursor
+
         cursor = connection.cursor(dictionary=True)
-        
-        # Check if item exists and is available
+
+        # Check item availability
         cursor.execute("SELECT * FROM inventory_items WHERE id = %s", (item_id,))
         item = cursor.fetchone()
+        print(f"ITEM DATA: id={item['id']}, name={item['name']}, status='{item['status']}', type={type(item['status'])}")
+
+        if not item:
+            return jsonify({'success': False, 'message': 'Item does not exist'})
         
-        if not item or item['status'] != 'available':
-            return jsonify({'success': False, 'message': 'Item not available or does not exist'})
-        
-        # Check if student exists
-        cursor.execute("SELECT * FROM students WHERE student_id = %s", (student_id,))
+        if item['status'].lower() != 'available':
+            return jsonify({'success': False, 'message': 'Item is not available for borrowing'})
+
+        # Find student by student ID number
+        cursor.execute("SELECT * FROM students WHERE studentid = %s", (student_id_number,))
         student = cursor.fetchone()
-        
+        print('Fetched student:', student)  # Debugging log
+
         if not student:
-            return jsonify({'success': False, 'message': 'Student does not exist'})
-        
+            return jsonify({'success': False, 'message': 'Student not found. Please check your student ID.'})
+
         # Update item status to borrowed
         cursor.execute("UPDATE inventory_items SET status = 'borrowed' WHERE id = %s", (item_id,))
-        
-        # Insert into borrowed_items table
+
+        # Record the borrowing transaction using the correct column names
         cursor.execute("""
             INSERT INTO borrowed_items 
-            (itemId, studentId, yearSection, course, borrowDate, dueDate, hoursToUse)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (item_id, student_id, year_section, course, borrow_date, due_date, hours_to_use))
+            (itemId, studentId, y_s, course, borrowDate, borrowDurationHours)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (item_id, student['id'], year_section, course, borrow_date, hours_to_use))
         
+        # The dueDate will be set automatically by the MySQL trigger
+
         connection.commit()
-        return jsonify({'success': True, 'message': 'Item borrowed successfully'})
         
+        # Retrieve the calculated due date to return to the client
+        cursor.execute("""
+            SELECT dueDate FROM borrowed_items 
+            WHERE itemId = %s AND studentId = %s 
+            ORDER BY id DESC LIMIT 1
+        """, (item_id, student['id']))
+        
+        due_date_result = cursor.fetchone()
+        calculated_due_date = due_date_result['dueDate'] if due_date_result else None
+        
+        print('Item borrowed successfully, due date:', calculated_due_date)  # Debugging log
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Item borrowed successfully',
+            'borrowDetails': {
+                'itemName': item['name'],
+                'dueDate': calculated_due_date.isoformat() if calculated_due_date else None
+            }
+        })
+
     except Exception as e:
         connection.rollback()
+        print('Error:', e)  # Debugging log
         return jsonify({'success': False, 'message': f'Error: {str(e)}'})
-    
+
     finally:
-        if cursor:
+        if connection.is_connected():
             cursor.close()
-        if connection:
+
             connection.close()
 
 # Route to delete an item from the inventory
@@ -250,40 +364,51 @@ def delete_inventory_item(item_id):
     connection.close()
     return jsonify({'success': True})
 
+
+def validate_student_id(student_id):
+    pattern = r'^\d{4}-\d{4}$'  # Match format 0000-0000
+    return re.match(pattern, student_id) is not None
+
 # Route to add a new student
 @app.route('/api/students', methods=['POST'])
 def add_student():
     data = request.json
-    student_id = generate_id()
+    print("Received data:", data)  # Debugging
+    # Validate input
+    student_id = data.get('studentid')
+    if not student_id or not validate_student_id(student_id):
+        print("Invalid student ID:", student_id)  # Debugging
+        return jsonify({'success': False, 'message': 'Invalid Student ID'}), 400
+
     student = {
-        'id': student_id,
-        'studentid': '0000-0000',
+        'studentid': data.get('studentid'),
         'name': data.get('name'),
-        'email': data.get('email'),
-        'course': data.get('course')
+        'email': data.get('email')
     }
-    
-    print(f"Adding student: {student}")
-    
+
     connection = get_db_connection()
     if connection is None:
-        return jsonify({'success': False, 'message': 'Failed to connect to database'})
-    
+        return jsonify({'success': False, 'message': 'Failed to connect to database'}), 500
+
     try:
         cursor = connection.cursor()
         cursor.execute("""
-            INSERT INTO students (id, studentid, name, email, course)
-            VALUES (%s, %s, %s, %s, %s)
-        """, (student_id, student['studentid'], student['name'], student['email'], student['course']))
+            INSERT INTO students (studentid, name, email)
+            VALUES (%s, %s, %s)
+        """, (student['studentid'], student['name'], student['email']))
         connection.commit()
-        cursor.close()
-        connection.close()
-        print("Student added successfully")
-    except Error as e:
-        print(f"Error adding student: {e}")
-        return jsonify({'success': False, 'message': 'Failed to add student to database'})
-    
-    return jsonify({'success': True, 'student': student})
+        return jsonify({'success': True, 'student': student}), 201
+    except mysql.connector.Error as e:
+        print(f"MySQL error: {e}")
+        return jsonify({'success': False, 'message': 'Database error'}), 500
+    except Exception as e:
+        print(f"Unexpected error: {e}")
+        return jsonify({'success': False, 'message': 'An unexpected error occurred'}), 500
+    finally:
+        if cursor:
+            cursor.close()
+        if connection:
+            connection.close()
 
 if __name__ == '__main__':
     # Create tables if they don't exist
@@ -297,7 +422,7 @@ if __name__ == '__main__':
                 category VARCHAR(255) NOT NULL,
                 description TEXT,
                 status VARCHAR(50) NOT NULL,
-                image LONGBLOB
+                image LONGTEXT
             )
         """)
         cursor.execute("""
@@ -326,3 +451,4 @@ if __name__ == '__main__':
     
     # Ensure the Flask server runs on a different port (e.g., 5000)
     app.run(debug=True)
+
