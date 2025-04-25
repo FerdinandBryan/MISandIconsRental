@@ -59,6 +59,7 @@
                 <button class="nav-button active" data-section="mis-equipment">MIS ITEMS</button>
                 <button class="nav-button" data-section="icons-equipment">ICONS</button>
                 <button class="nav-button" data-section="other-equipment">OTHER ITEMS</button>
+                <button class="nav-button" data-section="return-item">RETURN ITEM <i class="fas fa-undo-alt"></i></button>
                 <button id="student-logout" class="nav-button logout-btn">LOGOUT <i
                         class="fas fa-sign-out-alt"></i></button>
             </div>
@@ -93,6 +94,52 @@
                         <h2><i class="fas fa-tools"></i> Other Equipment</h2>
                         <div class="cards" id="things-items">
                             <!-- Items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Return Item Section -->
+                <div id="return-item-section" class="content-section">
+                    <div class="dashboard-box">RETURN ITEM</div>
+                    <div class="category-section">
+                        <h2><i class="fas fa-undo-alt"></i> Return Borrowed Items</h2>
+                        <div class="borrowed-items-container">
+                            <div class="table-responsive">
+                                <table class="item-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item Code</th>
+                                            <th>Name</th>
+                                            <th>Borrowed Date</th>
+                                            <th>Expected Return</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="student-borrowed-items">
+                                        <!-- Example row with Return Now button -->
+                                        <!-- This is just for demonstration, it will be dynamically generated -->
+                                        <!--
+                                        <tr>
+                                            <td>MIS-001</td>
+                                            <td>Projector</td>
+                                            <td>2023-04-21 09:30</td>
+                                            <td>2023-04-21 13:30</td>
+                                            <td>
+                                                <button class="btn return-btn" data-item-id="MIS-001">
+                                                    <i class="fas fa-undo"></i> Return
+                                                </button>
+                                                <button class="btn return-now-btn" data-item-id="MIS-001">
+                                                    <i class="fas fa-check-circle"></i> Return Now
+                                                </button>
+                                            </td>
+                                        </tr>
+                                        -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div id="no-borrowed-items" style="display: none;">
+                                <p>You have no borrowed items to return.</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -139,6 +186,61 @@
             </form>
         </div>
     </div>
+
+    <!-- Return Item Modal -->
+    <div id="return-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Return Item</h2>
+                <span class="close">&times;</span>
+            </div>
+            <p id="return-item-name" class="modal-item-details">Item: Projector (MIS-001)</p>
+
+            <form id="return-form">
+                <input type="hidden" id="return-item-id" name="return-item-id">
+                <div class="form-group">
+                    <label for="item-condition">Item Condition:</label>
+                    <select id="item-condition" class="form-control" required>
+                        <option value="good">Good</option>
+                        <option value="damaged">Damaged</option>
+                    </select>
+                </div>
+
+                <div id="damage-description-container" class="form-group" style="display: none;">
+                    <label for="damage-description">Description of Damage:</label>
+                    <textarea id="damage-description" class="form-control" rows="3" placeholder="Please describe the damage..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="return-comments">Comments (Optional):</label>
+                    <textarea id="return-comments" class="form-control" rows="2" placeholder="Any additional comments..."></textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn cancel-btn" id="cancel-return">Cancel</button>
+                    <button type="submit" class="btn primary-btn" id="confirm-return">Confirm Return</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Quick Return Confirmation Modal -->
+    <div id="quick-return-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Quick Return</h2>
+                <span class="close">&times;</span>
+            </div>
+            <p id="quick-return-item-name" class="modal-item-details">Item: Projector (MIS-001)</p>
+            <p>Are you sure you want to quickly return this item? The item will be marked as returned in good condition.</p>
+            
+            <div class="form-actions">
+                <button type="button" class="btn cancel-btn" id="cancel-quick-return">Cancel</button>
+                <button type="button" class="btn primary-btn" id="confirm-quick-return">Confirm Quick Return</button>
+            </div>
+        </div>
+    </div>
+
     <!-- admin interface -->
     <div id="admin-interface" class="hidden">
         <div class="container">
@@ -398,6 +500,84 @@
     </div>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
     <script src="main.js"></script>
+    <script src="login.js"></script>
+    <script src="borrowed.js"></script>
+    
+    <!-- Additional JavaScript for the Return Now functionality -->
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Quick Return functionality
+        const quickReturnModal = document.getElementById('quick-return-modal');
+        const quickReturnItemName = document.getElementById('quick-return-item-name');
+        const cancelQuickReturn = document.getElementById('cancel-quick-return');
+        const confirmQuickReturn = document.getElementById('confirm-quick-return');
+        let currentQuickReturnItemId = null;
+        
+        // When the page loads, add event listeners for dynamically created "Return Now" buttons
+        document.addEventListener('click', function(e) {
+            if (e.target && e.target.classList.contains('return-now-btn') || 
+                (e.target.parentElement && e.target.parentElement.classList.contains('return-now-btn'))) {
+                
+                // Get the button or its parent if the icon was clicked
+                const btn = e.target.classList.contains('return-now-btn') ? e.target : e.target.parentElement;
+                const itemId = btn.getAttribute('data-item-id');
+                const itemRow = btn.closest('tr');
+                const itemName = itemRow.querySelector('td:nth-child(2)').textContent;
+                
+                // Set the modal item name and ID
+                quickReturnItemName.textContent = `Item: ${itemName} (${itemId})`;
+                currentQuickReturnItemId = itemId;
+                
+                // Show the quick return modal
+                quickReturnModal.style.display = 'block';
+            }
+        });
+        
+        // Close quick return modal on cancel or X
+        cancelQuickReturn.addEventListener('click', function() {
+            quickReturnModal.style.display = 'none';
+        });
+        
+        document.querySelectorAll('#quick-return-modal .close').forEach(function(closeBtn) {
+            closeBtn.addEventListener('click', function() {
+                quickReturnModal.style.display = 'none';
+            });
+        });
+        
+        // Handle quick return confirmation
+        confirmQuickReturn.addEventListener('click', function() {
+            if (currentQuickReturnItemId) {
+                // Process the quick return (this would typically involve an API call)
+                // For demo purposes, we'll just show a toast message
+                
+                // Show toast message
+                const toast = document.getElementById('toast');
+                const toastMessage = document.querySelector('.toast-message');
+                toastMessage.textContent = `Item ${currentQuickReturnItemId} successfully returned!`;
+                toast.classList.remove('hidden');
+                
+                // Hide modal
+                quickReturnModal.style.display = 'none';
+                
+                // Reset ID
+                currentQuickReturnItemId = null;
+                
+                // Hide toast after 3 seconds
+                setTimeout(function() {
+                    toast.classList.add('hidden');
+                }, 3000);
+                
+                // Refresh the borrowed items list (this would be implemented in your main.js)
+                // refreshBorrowedItems();
+            }
+        });
+        
+        // Close toast message
+        document.querySelector('.toast-close').addEventListener('click', function() {
+            document.getElementById('toast').classList.add('hidden');
+        });
+    });
+    </script>
 </body>
 
 </html>
