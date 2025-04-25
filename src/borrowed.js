@@ -1,244 +1,240 @@
-    window.borrowSystem = (function() {
-        // Private variables
-        const API_URL = 'http://localhost:5000/api';
-        let borrowedItems = [];
-        
-        // DOM Elements - to be initialized when DOM is ready
-        let borrowModal;
-        let borrowForm;
-        let studentIdInput;
-        let returnDateInput;
-        let itemNameDisplay;
-        let borrowedItemsTable;
-        
-        // Initialize the module
-        function init() {
-        console.log('Initializing borrow system...');
-        
-        // Find DOM elements
-        borrowModal = document.getElementById('borrow-modal');
-        borrowForm = document.getElementById('borrow-form');
-        studentIdInput = document.getElementById('student-id');
-        returnDateInput = document.getElementById('return-date');
-        itemNameDisplay = document.getElementById('borrow-item-name');
-        borrowedItemsTable = document.getElementById('borrowed-items-table');
-        
-        // Add event listeners
-        if (borrowForm) {
-            borrowForm.addEventListener('submit', handleBorrowSubmit);
+document.addEventListener('DOMContentLoaded', function () {
+    // API URL will be referenced from appCore
+    let borrowedItems = [];
+    let currentStudentId = null;
+  
+    // Open borrow modal function
+    function openBorrowModal(item) {
+      const modal = document.getElementById('borrow-modal');
+      if (!modal) return;
+  
+      // Set the item info in the modal
+      document.getElementById('borrow-item-id').value = item.id;
+      document.getElementById('borrow-item-name').textContent = item.name;
+      document.getElementById('borrow-item-category').textContent = item.category || 'N/A';
+      
+      // Display the item image if available
+      const itemImage = document.getElementById('borrow-item-image');
+      if (itemImage) {
+        if (item.image) {
+          itemImage.src = `data:image/jpeg;base64,${item.image}`;
+          itemImage.style.display = 'block';
+        } else {
+          itemImage.src = 'assets/placeholder-image.jpg';
+          itemImage.style.display = 'block';
         }
-        
-        document.querySelectorAll('.borrow-modal-close').forEach(button => {
-            button.addEventListener('click', closeBorrowModal);
-        });
-        
-        document.querySelectorAll('.cancel-borrow').forEach(button => {
-            button.addEventListener('click', closeBorrowModal);
-        });
-        
-        // Initialize return date with tomorrow's date
-        if (returnDateInput) {
-            const tomorrow = new Date();
-            tomorrow.setDate(tomorrow.getDate() + 1);
-            returnDateInput.min = tomorrow.toISOString().split('T')[0];
-            returnDateInput.value = tomorrow.toISOString().split('T')[0];
-        }
-        
-        console.log('Borrow system initialized');
-        }
-        
-        // Open the borrow modal with item details
-        function openBorrowModal(item) {
-        if (!borrowModal || !itemNameDisplay) {
-            console.error('Borrow modal elements not found');
-            return;
-        }
-        
-        // Store the item ID in the form
-        if (borrowForm) {
-            borrowForm.setAttribute('data-item-id', item.id);
-        }
-        
-        // Set the item name in the modal
-        itemNameDisplay.textContent = item.name;
-        
-        // Show the modal
-        borrowModal.style.display = 'block';
-        }
-        
-        // Close the borrow modal
-        function closeBorrowModal() {
-        if (borrowModal) {
-            borrowModal.style.display = 'none';
-        }
-        
-        // Reset form if it exists
-        if (borrowForm) {
-            borrowForm.reset();
-        }
-        }
-        
-        // Handle borrow form submission
-        function handleBorrowSubmit(e) {
+      }
+      
+      // Show the modal
+      modal.style.display = 'block';
+  
+      // Close modal when clicking on X or cancel button
+      document.querySelector('#borrow-modal .close').addEventListener('click', function () {
+        modal.style.display = 'none';
+      });
+  
+      document.getElementById('cancel-borrow').addEventListener('click', function () {
+        modal.style.display = 'none';
+      });
+  
+      // Handle borrow form submission
+      document.getElementById('borrow-form').addEventListener('submit', function (e) {
         e.preventDefault();
-        
-        if (!borrowForm) return;
-        
-        const itemId = borrowForm.getAttribute('data-item-id');
-        const studentId = studentIdInput.value.trim();
-        const returnDate = returnDateInput.value;
-        
-        // Validate form
+  
+        const studentId = document.getElementById('student-id').value.trim();
+        const studentName = document.getElementById('student-name').value.trim();
+        const returnDate = document.getElementById('return-date').value;
+  
+        // Validate fields
         if (!studentId) {
-            window.appCore.showToast('Please enter your student ID', 'error');
-            return;
+          window.appCore.showToast('Student ID is required', 'error');
+          return;
         }
-        
+  
+        if (!studentName) {
+          window.appCore.showToast('Student name is required', 'error');
+          return;
+        }
+  
         if (!returnDate) {
-            window.appCore.showToast('Please select a return date', 'error');
-            return;
+          window.appCore.showToast('Return date is required', 'error');
+          return;
         }
-        
-        // Create borrow request data
+  
+        // Prepare borrow data
         const borrowData = {
-            itemId: itemId,
-            studentId: studentId,
-            borrowDate: new Date().toISOString().split('T')[0],
-            returnDate: returnDate
+          itemId: item.id,
+          studentId: studentId,
+          studentName: studentName,
+          borrowDate: new Date().toISOString().split('T')[0], // Today's date
+          returnDate: returnDate
         };
-        
+  
         // Send borrow request to API
-        fetch(`${API_URL}/borrow`, {
-            method: 'POST',
-            headers: {
+        fetch(`${window.appCore.API_URL}/borrow`, {
+          method: 'POST',
+          headers: {
             'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(borrowData)
+          },
+          body: JSON.stringify(borrowData)
         })
-        .then(response => response.json())
-        .then(data => {
+          .then(response => response.json())
+          .then(data => {
             if (data.success) {
-            window.appCore.showToast('Item borrowed successfully!');
-            closeBorrowModal();
-            
-            // Refresh inventory data after successful borrow
-            if (window.appCore.loadInventory) {
-                window.appCore.loadInventory();
-            }
-            
-            if (window.appCore.loadInventoryForStudent) {
-                window.appCore.loadInventoryForStudent();
-            }
+              window.appCore.showToast('Item borrowed successfully!');
+              modal.style.display = 'none';
+              // Reload inventory to update UI
+              window.appCore.loadInventory();
+              // Also reload student view if we're in that section
+              window.appCore.loadInventoryForStudent();
             } else {
-            window.appCore.showToast('Failed to borrow item: ' + data.message, 'error');
+              window.appCore.showToast('Failed to borrow item: ' + data.message, 'error');
             }
-        })
-        .catch(error => {
+          })
+          .catch(error => {
             console.error('Error borrowing item:', error);
             window.appCore.showToast('Error borrowing item. Please try again.', 'error');
+          });
+      });
+    }
+  
+    // Function to render borrowed items table for admin view
+    function renderBorrowedItemsTable(inventory) {
+      const borrowedItemsTable = document.getElementById('borrowed-items-table');
+      if (!borrowedItemsTable) return;
+  
+      borrowedItemsTable.innerHTML = '';
+  
+      // Filter borrowed items
+      const borrowedItems = inventory.filter(item => 
+        item.status && item.status.toLowerCase() === 'borrowed'
+      );
+  
+      if (borrowedItems.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="6" class="no-items">No borrowed items</td>';
+        borrowedItemsTable.appendChild(row);
+        return;
+      }
+  
+      borrowedItems.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>ITEM-${item.id}</td>
+          <td>${item.name}</td>
+          <td>${item.borrower?.studentName || 'Unknown'}</td>
+          <td>${item.borrower?.studentId || 'Unknown'}</td>
+          <td>${formatDate(item.borrower?.borrowDate)}</td>
+          <td>${formatDate(item.borrower?.returnDate)}</td>
+          <td>
+            <button class="action-btn return-btn" data-id="${item.id}">
+              <i class="fas fa-undo"></i> Return
+            </button>
+          </td>
+        `;
+  
+        borrowedItemsTable.appendChild(row);
+      });
+  
+      // Add event listeners to return buttons
+      document.querySelectorAll('.return-btn').forEach(button => {
+        button.addEventListener('click', function () {
+          const itemId = this.getAttribute('data-id');
+          returnItem(itemId);
         });
-        }
-        
-        // Fetch all borrowed items
-        function fetchBorrowedItems() {
-        return fetch(`${API_URL}/borrowed`)
-            .then(response => response.json())
-            .then(data => {
-            borrowedItems = data;
-            return data;
-            })
-            .catch(error => {
-            console.error('Error fetching borrowed items:', error);
-            window.appCore.showToast('Failed to load borrowed items', 'error');
-            return [];
-            });
-        }
-        
-        // Render borrowed items table for admin view
-        function renderBorrowedItemsTable(inventory) {
-        if (!borrowedItemsTable) return;
-        
-        // Clear the table
-        borrowedItemsTable.innerHTML = '';
-        
-        // Filter inventory for borrowed items
-        const borrowedItems = inventory.filter(item => 
-            item.status && item.status.toLowerCase() === 'borrowed'
-        );
-        
-        if (borrowedItems.length === 0) {
-            // Show message if no borrowed items
-            const emptyRow = document.createElement('tr');
-            emptyRow.innerHTML = '<td colspan="5" class="empty-table">No items currently borrowed</td>';
-            borrowedItemsTable.appendChild(emptyRow);
-            return;
-        }
-        
-        // Add each borrowed item to the table
-        borrowedItems.forEach(item => {
-            const row = document.createElement('tr');
-            
-            // Use placeholder data since we don't have the actual borrower info
-            // In a real implementation, this would come from the borrower records
-            row.innerHTML = `
-            <td>ITEM-${item.id}</td>
-            <td>${item.name}</td>
-            <td>STU-12345</td> <!-- Placeholder student ID -->
-            <td>${new Date().toLocaleDateString()}</td> <!-- Placeholder borrow date -->
-            <td>
-                <button class="action-btn return-btn" data-id="${item.id}">
-                <i class="fas fa-undo"></i> Return
-                </button>
-            </td>
-            `;
-            
-            borrowedItemsTable.appendChild(row);
-        });
-        
-        // Add event listeners to return buttons
-        document.querySelectorAll('.return-btn').forEach(button => {
-            button.addEventListener('click', function() {
-            const itemId = this.getAttribute('data-id');
-            returnItem(itemId);
-            });
-        });
-        }
-        
-        // Return an item
-        function returnItem(itemId) {
-        if (confirm('Mark this item as returned?')) {
-            fetch(`${API_URL}/return/${itemId}`, {
-            method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
+      });
+    }
+  
+    // Format date for display
+    function formatDate(dateString) {
+      if (!dateString) return 'N/A';
+      
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return dateString; // Return original if invalid
+      
+      return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+  
+    // Return an item
+    function returnItem(itemId) {
+      if (confirm('Are you sure you want to mark this item as returned?')) {
+        fetch(`${window.appCore.API_URL}/return/${itemId}`, {
+          method: 'POST'
+        })
+          .then(response => response.json())
+          .then(data => {
             if (data.success) {
-                window.appCore.showToast('Item returned successfully!');
-                
-                // Refresh inventory data
-                if (window.appCore.loadInventory) {
-                window.appCore.loadInventory();
-                }
+              window.appCore.showToast('Item returned successfully!');
+              // Reload inventory
+              window.appCore.loadInventory();
             } else {
-                window.appCore.showToast('Failed to return item: ' + data.message, 'error');
+              window.appCore.showToast('Failed to return item: ' + data.message, 'error');
             }
-            })
-            .catch(error => {
+          })
+          .catch(error => {
             console.error('Error returning item:', error);
             window.appCore.showToast('Error returning item. Please try again.', 'error');
-            });
-        }
-        }
-        
-        // Initialize the module when DOM is ready
-        document.addEventListener('DOMContentLoaded', init);
-        
-        // Public API
-        return {
-        openBorrowModal,
-        closeBorrowModal,
-        fetchBorrowedItems,
-        renderBorrowedItemsTable,
-        returnItem
-        };
-    })();
+          });
+      }
+    }
+  
+    // Load student borrow history
+    function loadStudentBorrowHistory(studentId) {
+      currentStudentId = studentId;
+      
+      fetch(`${window.appCore.API_URL}/borrowHistory/${studentId}`)
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            borrowedItems = data.items || [];
+            renderStudentBorrowHistory();
+          } else {
+            window.appCore.showToast('Failed to load borrow history: ' + data.message, 'error');
+          }
+        })
+        .catch(error => {
+          console.error('Error loading borrow history:', error);
+          window.appCore.showToast('Error loading borrow history. Please try again.', 'error');
+        });
+    }
+  
+    // Render student borrow history
+    function renderStudentBorrowHistory() {
+      const historyTable = document.getElementById('borrow-history-table');
+      if (!historyTable) return;
+  
+      historyTable.innerHTML = '';
+  
+      if (borrowedItems.length === 0) {
+        const row = document.createElement('tr');
+        row.innerHTML = '<td colspan="5" class="no-items">No borrow history found</td>';
+        historyTable.appendChild(row);
+        return;
+      }
+  
+      borrowedItems.forEach(item => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${formatDate(item.borrowDate)}</td>
+          <td>${formatDate(item.returnDate)}</td>
+          <td>${item.returned ? 'Returned' : 'Borrowed'}</td>
+          <td>${item.returned ? formatDate(item.actualReturnDate) : 'N/A'}</td>
+        `;
+  
+        historyTable.appendChild(row);
+      });
+    }
+  
+    // Export functions for use in other modules
+    window.borrowSystem = {
+      openBorrowModal,
+      renderBorrowedItemsTable,
+      loadStudentBorrowHistory,
+      returnItem
+    };
+  });
